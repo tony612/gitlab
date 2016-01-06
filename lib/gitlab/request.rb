@@ -97,11 +97,12 @@ module Gitlab
     # @raise [Error::MissingCredentials] if private_token and auth_token are not set.
     def set_authorization_header(options, path=nil)
       unless path == '/session'
-        raise Error::MissingCredentials.new("Please provide a private_token or auth_token for user") unless @private_token
-        if @private_token.length <= 20
-          options[:headers] = { 'PRIVATE-TOKEN' => @private_token }
-        else
-          options[:headers] = { 'Authorization' => "Bearer #{@private_token}" }
+        auth_token = (options[:body] && options[:body].delete(:auth_token)) || (@private_token.length > 20 ? @private_token : nil)
+        raise Error::MissingCredentials.new("Please provide a private_token or auth_token for user") if !@private_token && !auth_token
+        if auth_token
+          options[:headers] = {'Authorization' => "Bearer #{auth_token}"}
+        elsif
+          options[:headers] = {'PRIVATE-TOKEN' => @private_token}
         end
       end
     end
